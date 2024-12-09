@@ -42,11 +42,21 @@ This desktop application uses computer vision to recognize hand gestures and fac
 - Thumbs up → 👍
 - Peace sign → ✌️
 - Fist → ✊
+- Thumbs_down → 👎
+- Point_up → 👆
+- Point_down → 👇
+- Point_left → 👈
+- Point_right → 👉
+- Wave → 👋
+- Rock  → 🤘
+- Love  → 🤟
+- Call  → 🤙
+- Clap  → 👏
+- Open_hand → ✋
+- Pinch → 🤏
 
 ### Facial Expressions
 - Smile → 😊
-- Laugh → 😄
-- Surprise → 😮
 - Neutral → 😐
 
 ## Customization
