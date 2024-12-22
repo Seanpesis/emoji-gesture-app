@@ -50,14 +50,11 @@ class EmojiGestureApp(QMainWindow):
         self.layout.insertWidget(2, QLabel("Select Mode:"))
         self.layout.insertWidget(3, self.mode_selector)
 
-        # Create camera feed label
         self.camera_label = QLabel()
         self.layout.insertWidget(4, self.camera_label)
 
-        # Initialize mode
         self.current_mode = "Hand Gestures"
         
-        # Setup emoji mappings
         self.hand_gesture_emojis = {
             "ok": "👌",
             "thumbs_up": "👍",
@@ -93,11 +90,9 @@ class EmojiGestureApp(QMainWindow):
             "kiss": "😘",
         }
 
-        # Last detection time to prevent rapid-fire detections
         self.last_detection_time = 0
         self.detection_cooldown = 1.0  # seconds
 
-        # Start timer for video feed
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_frame)
         self.timer.start(30)  # 30ms refresh rate
@@ -126,7 +121,6 @@ class EmojiGestureApp(QMainWindow):
             else:
                 self.process_facial_expressions(frame)
 
-            # Convert frame to Qt format and display
             h, w, ch = frame.shape
             bytes_per_line = ch * w
             qt_image = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
@@ -143,12 +137,10 @@ class EmojiGestureApp(QMainWindow):
                 self.mp_draw.draw_landmarks(
                     frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
                 
-                # Get current time
                 current_time = time.time()
                 if current_time - self.last_detection_time < self.detection_cooldown:
                     return
 
-                # Detect various gestures
                 gesture = self.detect_hand_gesture(hand_landmarks)
                 if gesture and gesture in self.hand_gesture_emojis:
                     self.copy_emoji(self.hand_gesture_emojis[gesture])
@@ -178,7 +170,6 @@ class EmojiGestureApp(QMainWindow):
         pinky_mcp = landmarks.landmark[17]
         wrist = landmarks.landmark[0]
 
-        # Helper functions
         def finger_extended(tip, mid, base, mcp):
             vertical_extension = tip.y < mid.y < base.y
             finger_straightness = abs((tip.x - base.x) / (tip.y - base.y + 1e-6)) < 0.5
@@ -203,30 +194,25 @@ class EmojiGestureApp(QMainWindow):
             return abs(p1.x - p2.x) < threshold
 
         def is_pointing(tip, mid, base, direction='right'):
-            # Check if finger is extended and pointing in the specified direction
             if direction in ['right', 'left']:
-                # For horizontal pointing, check y-alignment and x-direction
                 is_aligned = abs(tip.y - base.y) < 0.15
                 if direction == 'right':
                     return is_aligned and (tip.x > base.x) and (mid.x > base.x)
                 else:
                     return is_aligned and (tip.x < base.x) and (mid.x < base.x)
-            else:  # up or down
-                # For vertical pointing, check x-alignment and y-direction
+            else:
                 is_aligned = abs(tip.x - base.x) < 0.15
                 if direction == 'up':
                     return is_aligned and (tip.y < base.y) and (mid.y < base.y)
                 else:
                     return is_aligned and (tip.y > base.y) and (mid.y > base.y)
 
-        # Check for OK sign
         if (distance(thumb_tip, index_tip) < 0.05 and
             finger_extended(middle_tip, middle_mid, middle_base, middle_mcp) and
             finger_extended(ring_tip, ring_mid, ring_base, ring_mcp) and
             finger_extended(pinky_tip, pinky_mid, pinky_base, pinky_mcp)):
             return "ok"
 
-        # Check for thumbs up
         if (thumb_tip.y < thumb_base.y and
             finger_bent(index_tip, index_mid, index_base) and
             finger_bent(middle_tip, middle_mid, middle_base) and
@@ -235,7 +221,6 @@ class EmojiGestureApp(QMainWindow):
             is_vertical(thumb_tip, thumb_base)):
             return "thumbs_up"
 
-        # Check for thumbs down
         if (thumb_tip.y > thumb_base.y and
             finger_bent(index_tip, index_mid, index_base) and
             finger_bent(middle_tip, middle_mid, middle_base) and
@@ -244,35 +229,30 @@ class EmojiGestureApp(QMainWindow):
             is_vertical(thumb_tip, thumb_base)):
             return "thumbs_down"
 
-        # Check for pointing right
         if (is_pointing(index_tip, index_mid, index_base, 'right') and
             finger_bent(middle_tip, middle_mid, middle_base) and
             finger_bent(ring_tip, ring_mid, ring_base) and
             finger_bent(pinky_tip, pinky_mid, pinky_base)):
             return "point_right"
 
-        # Check for pointing left
         if (is_pointing(index_tip, index_mid, index_base, 'left') and
             finger_bent(middle_tip, middle_mid, middle_base) and
             finger_bent(ring_tip, ring_mid, ring_base) and
             finger_bent(pinky_tip, pinky_mid, pinky_base)):
             return "point_left"
 
-        # Check for pointing up
         if (is_pointing(index_tip, index_mid, index_base, 'up') and
             finger_bent(middle_tip, middle_mid, middle_base) and
             finger_bent(ring_tip, ring_mid, ring_base) and
             finger_bent(pinky_tip, pinky_mid, pinky_base)):
             return "point_up"
 
-        # Check for pointing down
         if (is_pointing(index_tip, index_mid, index_base, 'down') and
             finger_bent(middle_tip, middle_mid, middle_base) and
             finger_bent(ring_tip, ring_mid, ring_base) and
             finger_bent(pinky_tip, pinky_mid, pinky_base)):
             return "point_down"
 
-        # Detect peace sign (V shape with index and middle fingers)
         if (finger_extended(index_tip, index_mid, index_base, index_mcp) and
             finger_extended(middle_tip, middle_mid, middle_base, middle_mcp) and
             not finger_extended(ring_tip, ring_mid, ring_base, ring_mcp) and
@@ -280,7 +260,6 @@ class EmojiGestureApp(QMainWindow):
             distance(index_tip, middle_tip) > 0.1):  # Ensure fingers are spread
             return "peace"
 
-        # Detect fist
         if (all(not finger_extended(tip, mid, base, mcp) for tip, mid, base, mcp in [
             (index_tip, index_mid, index_base, index_mcp),
             (middle_tip, middle_mid, middle_base, middle_mcp),
@@ -289,14 +268,12 @@ class EmojiGestureApp(QMainWindow):
         ]) and thumb_tip.x < index_mcp.x):  # Thumb tucked in
             return "fist"
 
-        # Detect pointing directions
         if (finger_extended(index_tip, index_mid, index_base, index_mcp) and
             all(not finger_extended(tip, mid, base, mcp) for tip, mid, base, mcp in [
                 (middle_tip, middle_mid, middle_base, middle_mcp),
                 (ring_tip, ring_mid, ring_base, ring_mcp),
                 (pinky_tip, pinky_mid, pinky_base, pinky_mcp)
             ])):
-            # Calculate pointing angle
             point_angle = calc_angle(index_tip, index_base, wrist)
             if -30 <= point_angle <= 30:
                 return "point_right"
@@ -307,7 +284,6 @@ class EmojiGestureApp(QMainWindow):
             elif -120 <= point_angle <= -60:
                 return "point_up"
 
-        # Detect wave (fingers extended and hand tilted)
         if (all(finger_extended(tip, mid, base, mcp) for tip, mid, base, mcp in [
             (index_tip, index_mid, index_base, index_mcp),
             (middle_tip, middle_mid, middle_base, middle_mcp),
@@ -316,7 +292,6 @@ class EmojiGestureApp(QMainWindow):
         ]) and abs(calc_angle(index_tip, wrist, pinky_tip)) > 30):
             return "wave"
 
-        # Detect rock sign
         if (finger_extended(index_tip, index_mid, index_base, index_mcp) and
             not finger_extended(middle_tip, middle_mid, middle_base, middle_mcp) and
             not finger_extended(ring_tip, ring_mid, ring_base, ring_mcp) and
@@ -324,7 +299,6 @@ class EmojiGestureApp(QMainWindow):
             thumb_tip.x > index_base.x):  # Thumb out
             return "rock"
 
-        # Detect love sign
         if (finger_extended(index_tip, index_mid, index_base, index_mcp) and
             not finger_extended(middle_tip, middle_mid, middle_base, middle_mcp) and
             not finger_extended(ring_tip, ring_mid, ring_base, ring_mcp) and
@@ -332,7 +306,6 @@ class EmojiGestureApp(QMainWindow):
             thumb_tip.x < index_base.x):  # Thumb in
             return "love"
 
-        # Detect call sign
         if (not finger_extended(index_tip, index_mid, index_base, index_mcp) and
             not finger_extended(middle_tip, middle_mid, middle_base, middle_mcp) and
             not finger_extended(ring_tip, ring_mid, ring_base, ring_mcp) and
@@ -340,7 +313,6 @@ class EmojiGestureApp(QMainWindow):
             thumb_tip.x > pinky_base.x):  # Thumb out
             return "call"
 
-        # Detect clap (hands close together with fingers aligned)
         if (all(finger_extended(tip, mid, base, mcp) for tip, mid, base, mcp in [
             (index_tip, index_mid, index_base, index_mcp),
             (middle_tip, middle_mid, middle_base, middle_mcp),
@@ -349,7 +321,6 @@ class EmojiGestureApp(QMainWindow):
         ]) and abs(index_tip.x - pinky_tip.x) < 0.1):  # Fingers close together
             return "clap"
 
-        # Detect open hand
         if (all(finger_extended(tip, mid, base, mcp) for tip, mid, base, mcp in [
             (index_tip, index_mid, index_base, index_mcp),
             (middle_tip, middle_mid, middle_base, middle_mcp),
@@ -358,7 +329,6 @@ class EmojiGestureApp(QMainWindow):
         ]) and thumb_tip.x > index_base.x):  # Thumb out
             return "open_hand"
 
-        # Detect pinch
         if (distance(thumb_tip, index_tip) < 0.05 and  # Thumb and index close
             all(finger_extended(tip, mid, base, mcp) for tip, mid, base, mcp in [
                 (middle_tip, middle_mid, middle_base, middle_mcp),
@@ -394,27 +364,22 @@ class EmojiGestureApp(QMainWindow):
         def get_point(idx):
             return landmarks.landmark[idx]
 
-        # Eyes
         left_eye_top = get_point(386)
         left_eye_bottom = get_point(374)
         right_eye_top = get_point(159)
         right_eye_bottom = get_point(145)
         
-        # Mouth points for teeth visibility and general shape
         mouth_top = get_point(13)        # Upper lip
         mouth_bottom = get_point(14)     # Lower lip
         mouth_top_inner = get_point(12)  # Inner upper lip
         mouth_bottom_inner = get_point(15)# Inner lower lip
         
-        # Mouth corners for smile/sad detection
         mouth_left = get_point(61)
         mouth_right = get_point(291)
         
-        # Additional points for lip pursing (kiss)
         upper_lip_outer = get_point(0)
         lower_lip_outer = get_point(17)
         
-        # Face contraction points (for sad)
         cheek_left = get_point(234)      # Left cheek
         cheek_right = get_point(454)     # Right cheek
         forehead = get_point(10)         # Forehead
@@ -423,51 +388,40 @@ class EmojiGestureApp(QMainWindow):
         def calc_distance(p1, p2):
             return np.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2)
 
-        # Calculate eye openness
         left_eye_height = calc_distance(left_eye_top, left_eye_bottom)
         right_eye_height = calc_distance(right_eye_top, right_eye_bottom)
         eye_openness = (left_eye_height + right_eye_height) / 2
         
-        # Calculate mouth metrics
         mouth_height = calc_distance(mouth_top, mouth_bottom)  # Total mouth height
         mouth_inner_height = calc_distance(mouth_top_inner, mouth_bottom_inner)  # Inner mouth (teeth visibility)
         lip_pucker = calc_distance(upper_lip_outer, lower_lip_outer)  # For kiss detection
         
-        # Calculate face contraction (for sad)
         face_height = calc_distance(forehead, chin)
         face_width = calc_distance(cheek_left, cheek_right)
         face_contraction = face_width / face_height  # Lower value means more contracted
         
-        # Calculate lip corner positions for smile/sad
         mouth_corner_y = (mouth_left.y + mouth_right.y) / 2
         mouth_center_y = (mouth_top.y + mouth_bottom.y) / 2
         lip_curve = mouth_corner_y - mouth_center_y
 
-        # Debug values
         print(f"Eye openness: {eye_openness:.3f}")
         print(f"Mouth height: {mouth_height:.3f}")
         print(f"Face contraction: {face_contraction:.3f}")
         print(f"Lip curve: {lip_curve:.3f}")
 
-        # Expression detection based on user's definitions
         
-        # 1. Check for shock/surprise (eyes AND mouth open)
         if eye_openness > 0.045 and mouth_height > 0.08:  # Adjusted thresholds
             return "shock"
             
-        # 2. Check for sad (whole face contracted)
         if face_contraction < 1.2 and lip_curve > 0.005:  # Face contracted and slight downturn of mouth
             return "sad"
             
-        # 3. Check for kiss (pursed lips)
         if lip_pucker < 0.02:
             return "kiss"
             
-        # 4. Check for smile (teeth visible)
         if mouth_inner_height > 0.03:
             return "smile"
             
-        # 5. Default to neutral if no other expression detected
         return "neutral"
 
     def copy_emoji(self, emoji):
